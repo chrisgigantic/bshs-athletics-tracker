@@ -270,7 +270,7 @@ function teamRanking(){
 /* ======================= STATE PERSISTENCE ======================= */
 const LSKEY="bshs_athletics_v1";
 function save(){ localStorage.setItem(LSKEY, JSON.stringify(state)); const el=document.getElementById("saveState"); if(el)el.textContent="Saved "+new Date().toLocaleTimeString(); if(!FB.adopting) fbPush(); }
-function load(){ try{ const s=localStorage.getItem(LSKEY); if(s) state=JSON.parse(s); }catch(e){} }
+function load(){ try{ const s=localStorage.getItem(LSKEY); if(s){ const p=JSON.parse(s); state={track:p.track||{}, throws:p.throws||{}}; } }catch(e){} }
 function exportState(){ const b64=btoa(unescape(encodeURIComponent(JSON.stringify(state)))); navigator.clipboard?.writeText(b64); prompt("Copy this state string (or use clipboard):", b64); }
 function importState(){ const s=prompt("Paste state string:"); if(!s)return; try{ state=JSON.parse(decodeURIComponent(escape(atob(s.trim())))); render(); save(); }catch(e){ alert("Invalid state string"); } }
 
@@ -285,7 +285,7 @@ const FB={
 };
 const IS_OP=/(^|[?&#])op=(1|yes|true|on)(&|$)/i.test(location.search+location.hash)||/(^|[?&#])operator(&|$)/i.test(location.search+location.hash);
 function fbGet(){ return state; }
-function fbSet(d){ state=d; }
+function fbSet(d){ state = Object.assign({track:{}, throws:{}}, d||{}); }
 function fbSignIn(pw){
   return fetch("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="+FB.apiKey,
     {method:"POST",headers:{"Content-Type":"application/json"},
