@@ -130,6 +130,7 @@ function numCell(uid, disp){
   return `<span class="inpgrp"><input type="number" step="0.01" id="${uid}" value="${disp}"><button type="button" class="chk" data-chk="${uid}">✓</button></span>`;
 }
 function commit(uid){
+  if(!IS_OP) return;
   const el=document.getElementById(uid);
   const raw = pending[uid]!==undefined ? pending[uid] : (el?el.value:"");
   delete pending[uid];
@@ -373,6 +374,11 @@ function fbUI(){
       fbSignIn(pw).then(function(ok){ if(!ok) alert("Sign-in failed — check the operator password."); });
     };
     document.title=(document.title||"")+" · OPERATOR";
+  } else {
+    const st=document.createElement("style");
+    st.textContent="html.fb-viewer input{pointer-events:none;background:#f7f7f7;} html.fb-viewer #btnDemo,html.fb-viewer #btnReset,html.fb-viewer #btnImport,html.fb-viewer #btnExport,html.fb-viewer #btnTest{display:none;}";
+    document.head.appendChild(st);
+    document.documentElement.classList.add("fb-viewer");
   }
   fbPaint();
 }
