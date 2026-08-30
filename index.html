@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BSHS Athletics — Live Tracker (Stawell Gift Handicap)</title>
+<style>
+  :root{
+    --bg:#0d1b2a; --panel:#16283c; --panel2:#1d3450; --line:#2a4564;
+    --txt:#e6eef7; --muted:#9db4cc; --accent:#4ea1ff; --good:#2ecc71; --warn:#f39c12; --bad:#e74c3c; --gold:#ffd700;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--txt); font-family:'Segoe UI',Arial,sans-serif; font-size:15px}
+  header{background:linear-gradient(90deg,#10233b,#1d3450); padding:14px 18px; border-bottom:2px solid var(--accent)}
+  header h1{font-size:20px; letter-spacing:.5px}
+  header .sub{color:var(--muted); font-size:12.5px; margin-top:2px}
+  nav{display:flex; flex-wrap:wrap; gap:6px; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line)}
+  nav button{background:transparent; color:var(--muted); border:1px solid var(--line); border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13.5px}
+  nav button.active{background:var(--accent); color:#06233f; border-color:var(--accent); font-weight:600}
+  nav button:hover{color:var(--txt)}
+  #eventbar{display:flex; flex-wrap:wrap; gap:6px; padding:8px 14px; background:var(--panel2); border-bottom:1px solid var(--line)}
+  #eventbar button{background:transparent; color:var(--muted); border:1px solid var(--line); border-radius:5px; padding:5px 10px; cursor:pointer; font-size:12.5px}
+  #eventbar button.active{background:var(--warn); color:#3a2600; border-color:var(--warn); font-weight:600}
+  main{padding:16px 18px; max-width:1180px; margin:0 auto}
+  h2.sec{color:var(--accent); font-size:16px; margin-bottom:10px; border-bottom:1px solid var(--line); padding-bottom:6px}
+  .hint{color:var(--muted); font-size:13px; margin-bottom:10px}
+  table{width:100%; border-collapse:collapse; margin-bottom:14px; background:var(--panel); border-radius:8px; overflow:hidden}
+  th,td{border:1px solid var(--line); padding:7px 9px; text-align:left; font-size:13.5px}
+  th{background:var(--panel2); color:var(--accent); font-weight:600; white-space:nowrap}
+  tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+  input[type=text],input[type=number],select{background:#0f2136; border:1px solid var(--line); color:var(--txt); border-radius:5px; padding:5px 7px; font-size:13.5px; width:100%}
+  input:focus{border-color:var(--accent); outline:none}
+  .ro{color:var(--muted)} .mark{color:#7fd1ff; font-weight:600}
+  .good{color:var(--good); font-weight:600} .warn{color:var(--warn); font-weight:600} .bad{color:var(--bad); font-weight:600}
+  .tag{display:inline-block; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:600}
+  .tag.clear{background:#123c26; color:var(--good)} .tag.prov{background:#4a3412; color:var(--warn)} .tag.dem{background:#4a1212; color:var(--bad)}
+  .tag.q{background:#123a5c; color:#7fd1ff} .tag.wc{background:#5c4a12; color:var(--gold)} .tag.f{background:#123c26; color:var(--good)}
+  .medal{font-weight:700}.g1{color:var(--gold)}.g2{color:#c0c0c0}.g3{color:#cd7f32}
+  .flags span{display:inline-block; margin-right:4px}
+  .bar{display:flex; gap:10px; align-items:center; margin:12px 0}
+  .bar button{background:var(--accent); color:#06233f; border:none; border-radius:6px; padding:9px 16px; cursor:pointer; font-size:13.5px; font-weight:600}
+  .bar button.ghost{background:transparent; color:var(--accent); border:1px solid var(--accent)}
+  .bar button.ghost2{background:transparent; color:var(--muted); border:1px solid var(--line)}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:12px}
+  .tally{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px}
+  .team{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center}
+  .team .grade{font-size:22px; font-weight:700; color:var(--accent)}
+  .team .meds{font-size:30px; margin:6px 0}
+  .team .tot{font-size:15px; color:var(--muted)}
+  .team.rank1{border-color:var(--gold); box-shadow:0 0 14px rgba(255,215,0,.25)}
+  #display{font-size:clamp(28px,5vw,64px); text-align:center; padding:30px}
+  #display table{font-size:clamp(20px,3vw,40px)} #display th,#display td{padding:14px 20px}
+  .medalgrid{font-size:clamp(20px,2.5vw,30px); line-height:1.6}
+  .statusline{margin-top:8px; font-size:12.5px; color:var(--muted)}
+  footer{padding:12px 18px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .btn{background:var(--panel2); border:1px solid var(--line); color:var(--txt); border-radius:6px; padding:7px 12px; cursor:pointer; font-size:13px}
+  .btn:hover{border-color:var(--accent)}
+  .hidden{display:none}
+  .inpgrp{display:flex; gap:4px}
+  .inpgrp input{flex:1; min-width:0}
+  .chk{background:var(--good); color:#04331a; border:none; border-radius:5px; padding:4px 10px; cursor:pointer; font-weight:700; font-size:13px}
+  .chk:hover{filter:brightness(1.15)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏃 BSHS Intramurals — Athletics Live Tracker</h1>
+  <div class="sub">Stawell Gift–style handicap · 3 days · G7–G12 · 4 track + 6 throws · medal tally only · live formulas mirror the verified Excel engine</div>
+</header>
+
+<nav id="nav">
+  <button data-v="setup">Setup</button>
+  <button data-v="day1">Day 1 · Trials</button>
+  <button data-v="semis">Day 2 · Semis</button>
+  <button data-v="final">Day 3 · Final</button>
+  <button data-v="throws">Throws</button>
+  <button data-v="tally">Medal Tally</button>
+  <button data-v="display">Display</button>
+</nav>
+
+<div id="eventbar"></div>
+
+<main id="main"></main>
+
+<footer>
+  <span id="saveState" class="statusline">Not saved</span>
+  <span style="flex:1"></span>
+  <button class="btn" id="btnDemo">▶ Run Demo</button>
+  <button class="btn" id="btnTest">✓ Self-Test</button>
+  <button class="btn" id="btnExport">Export state</button>
+  <button class="btn" id="btnImport">Import state</button>
+  <button class="btn" id="btnReset">Reset</button>
+</footer>
+
+<script>
+"use strict";
+/* ======================= LOCKED CONFIG (source of truth) ======================= */
+const CFG = {
+  k:0.85, m:0.85, trkRound:0.25, thrRound:0.1, thrCap:0.15,
+  capTS:0.05, capSF:0.08, outlier:5,
+  grades:["G7","G8","G9","G10","G11","G12"],
+  trackEvents:[
+    {id:"100M",label:"100 m Men",dist:100},
+    {id:"100F",label:"100 m Women",dist:100},
+    {id:"200M",label:"200 m Men",dist:200},
+    {id:"200F",label:"200 m Women",dist:200},
+  ],
+  throwEvents:[
+    {id:"ShotM",label:"Shot Put Men"},{id:"ShotF",label:"Shot Put Women"},
+    {id:"DiscusM",label:"Discus Men"},{id:"DiscusF",label:"Discus Women"},
+    {id:"JavM",label:"Javelin Men"},{id:"JavF",label:"Javelin Women"},
+  ],
+  perGradeTrack:2, perGradeThrow:2
+};
+
+/* ======================= PURE MATH (mirrors Excel) ======================= */
+function mround(x, mult){ const s=x<0?-1:1; return s*Math.round(Math.abs(x)/mult+1e-9)*mult; }
+function round2(x){ return Math.round(x*100)/100; }
+function trackMark(dist, tmin, t){ if(!t) return null; return mround(dist*(1 - tmin/t)*CFG.k, CFG.trkRound); }
+function throwBonus(best, q){ return mround((best - q)*CFG.m, CFG.thrRound); }
+function best3(a){ if(a==null) return null; if(typeof a==="number") return isNaN(a)?null:a; const vals=a.filter(v=>v!=null&&!isNaN(v)); return vals.length?Math.max(...vals):null; }
+function normThr(x){ if(x==null) return [null,null,null]; if(typeof x==="number") return [x,null,null]; if(!Array.isArray(x)) return [null,null,null]; return x; }
+function improvPct(prev, cur){ if(prev==null||cur==null) return null; return (prev - cur)/prev*100; }
+function median(arr){ const a=arr.filter(v=>v!=null).sort((x,y)=>x-y); if(!a.length) return null; const h=a.length>>1; return a.length%2? a[h] : (a[h-1]+a[h])/2; }
+function fmt(x){ if(x==null||isNaN(x)) return "—"; return (Math.round(x*100)/100).toString(); }
+
+/* ---- commit-on-check time entry: typing never calculates; the ✓ button (or Enter) commits ---- */
+const pending = {};
+function numCell(uid, disp){
+  return `<span class="inpgrp"><input type="number" step="0.01" id="${uid}" value="${disp}"><button type="button" class="chk" data-chk="${uid}">✓</button></span>`;
+}
+function commit(uid){
+  const el=document.getElementById(uid);
+  const raw = pending[uid]!==undefined ? pending[uid] : (el?el.value:"");
+  delete pending[uid];
+  const v=parseFloat(raw); const val=isNaN(v)?null:v;
+  const parts=uid.split("-"); const prefix=parts[0], eid=parts[1], idx=+parts[2], t=+parts[3];
+  if(prefix==="trial"){ const a=trkAthletes(eid); if(a[idx])a[idx].trial=val; }
+  else if(prefix==="semi"){ const a=trkAthletes(eid); if(a[idx])a[idx].semi=val; }
+  else if(prefix==="ftime"){ const a=trkAthletes(eid); if(a[idx])a[idx].ftime=val; }
+  else if(prefix==="d1t"){ const a=thrAthletes(eid); if(a[idx]&&!isNaN(t))a[idx].d1[t]=val; }
+  else if(prefix==="thr"){ const a=thrAthletes(eid); if(a[idx]&&!isNaN(t))a[idx].actual[t]=val; }
+  save(); render();
+}
+function wireInputs(main){
+  main.querySelectorAll("input[type=number]").forEach(inp=>{
+    inp.oninput=()=>{ pending[inp.id]=inp.value; };                 // record only, no calc
+    inp.onkeydown=e=>{ if(e.key==="Enter"){ commit(inp.id); e.preventDefault(); } };
+  });
+  main.querySelectorAll("button[data-chk]").forEach(btn=>{ btn.onclick=()=>commit(btn.dataset.chk); });
+}
+
+/* ======================= STATE ======================= */
+let state = { track:{}, throws:{} };
+function trkAthletes(eid){ if(!state.track[eid]){ const a=[]; CFG.grades.forEach((g,gi)=>{ for(let n=1;n<=CFG.perGradeTrack;n++) a.push({g, name:`${g} #${n}`, trial:null, heat:null, semi:null, sver:"", batch:null, ftime:null, fver:""}); }); state.track[eid]=a; } return state.track[eid]; }
+function thrAthletes(eid){ if(!state.throws[eid]){ const a=[]; CFG.grades.forEach(g=>{ for(let n=1;n<=CFG.perGradeThrow;n++) a.push({g, name:`${g} #${n}`, d1:[null,null,null], actual:[null,null,null], ver:""}); }); state.throws[eid]=a; } const arr=state.throws[eid]; arr.forEach(x=>{ x.d1=normThr(x.d1); x.actual=normThr(x.actual); }); return arr; }
+
+function fastestTrial(eid){ let mn=null; trkAthletes(eid).forEach(a=>{ if(a.trial!=null && (mn==null||a.trial<mn)) mn=a.trial; }); return mn; }
+function bestD1(eid){ let mx=null; thrAthletes(eid).forEach(a=>{ const b=best3(a.d1); if(b!=null && (mx==null||b>mx)) mx=b; }); return mx; }
+
+/* heat auto-assign: spread so grade-mates land in different heats */
+function assignHeats(eid){
+  const arr=trkAthletes(eid);
+  // order: all athlete-#1 across grades, then all #2
+  const order=[];
+  for(let n=1;n<=CFG.perGradeTrack;n++) for(let gi=0;gi<CFG.grades.length;gi++){
+    order.push(arr.find(a=>a.g===CFG.grades[gi] && a.name===`${CFG.grades[gi]} #${n}`));
+  }
+  order.forEach((a,i)=>{ if(a.heat==null) a.heat=(i%4)+1; });
+}
+
+/* ======================= DERIVED: track ======================= */
+function semiField(eid){
+  const arr=trkAthletes(eid).filter(a=>a.semi!=null && !isNaN(a.semi));
+  return arr.map(a=>{
+    const imp=improvPct(a.trial, a.semi);
+    const osemi = a.sver==="SANDBAG" ? a.trial*(1-CFG.capTS) : a.semi;
+    return {a, imp, osemi};
+  });
+}
+function semiFlags(eid){
+  const F=semiField(eid);
+  const med=median(F.map(f=>f.imp));
+  return F.map(f=>{
+    const cap = f.imp!=null && f.imp > CFG.capTS*100;
+    const out = f.imp!=null && med!=null && f.imp >= med + CFG.outlier;
+    return {a:f.a, imp:f.imp, cap, out, osemi:f.osemi, flags:(cap?1:0)+(out?1:0)};
+  });
+}
+/* Qualification: top 1 per heat + 2 wildcards (best losing times) -> 6 finalists */
+function qualifiers(eid){
+  const fl=semiFlags(eid).filter(f=>f.a.semi!=null);
+  const byHeat={};
+  fl.forEach(f=>{ const h=f.a.heat||1; (byHeat[h]=byHeat[h]||[]).push(f); });
+  const winners=[], losers=[];
+  Object.keys(byHeat).forEach(h=>{
+    const list=byHeat[h].slice().sort((x,y)=>x.osemi-y.osemi);
+    winners.push(list[0]); losers.push(...list.slice(1));
+  });
+  winners.sort((x,y)=>x.osemi-y.osemi);
+  losers.sort((x,y)=>x.osemi-y.osemi);
+  const wildcards=losers.slice(0,2);
+  return {winners, wildcards, qual:[...winners, ...wildcards]};
+}
+function finalField(eid){
+  const q=qualifiers(eid).qual;
+  return q.map(x=>{
+    const a=x.a;
+    const imp=a.ftime!=null ? improvPct(x.osemi, a.ftime) : null;
+    const ofinal = a.fver==="SANDBAG" ? x.osemi*(1-CFG.capSF) : a.ftime;
+    return {a, osemi:x.osemi, imp, ofinal};
+  }).filter(x=>x.a.ftime!=null);
+}
+function finalFlags(eid){
+  const F=finalField(eid);
+  const med=median(F.map(f=>f.imp));
+  return F.map(f=>{
+    const cap = f.imp!=null && f.imp > CFG.capSF*100;
+    const out = f.imp!=null && med!=null && f.imp >= med + CFG.outlier;
+    return {a:f.a, imp:f.imp, cap, out, osemi:f.osemi, ofinal:f.ofinal, flags:(cap?1:0)+(out?1:0)};
+  });
+}
+/* rank across both batches by finish time */
+function finalRank(eid){
+  const fl=finalFlags(eid);
+  const ranked=fl.slice().sort((x,y)=>(x.ofinal==null)-(y.ofinal==null) || x.ofinal-y.ofinal);
+  return ranked;
+}
+function throwsAdjusted(eid){
+  const best=bestD1(eid);
+  return thrAthletes(eid).map(a=>{
+    const d1b=best3(a.d1), actb=best3(a.actual);
+    const bonus= d1b!=null ? throwBonus(best, d1b) : null;
+    const imp=improvPct(d1b, actb);
+    const cap = imp!=null && d1b!=null && imp > CFG.thrCap*100;
+    const adj = a.ver==="SANDBAG" ? (d1b!=null? d1b*(1+CFG.thrCap):null) : (actb!=null&&bonus!=null? actb+bonus : null);
+    return {a, d1b, actb, bonus, imp, cap, adj};
+  });
+}
+
+/* ======================= MEDAL TALLY ======================= */
+function medals(){
+  const m={}; CFG.grades.forEach(g=>m[g]={G:0,S:0,B:0});
+  const give=(g,p)=>{ if(g&&m[g]){ if(p===1)m[g].G++; else if(p===2)m[g].S++; else if(p===3)m[g].B++; } };
+  // track finals
+  CFG.trackEvents.forEach(ev=>{
+    const r=finalRank(ev.id);
+    r.forEach((f,idx)=>{ give(f.a.g, idx+1); });
+  });
+  // throws
+  CFG.throwEvents.forEach(ev=>{
+    const adj=throwsAdjusted(ev.id).filter(x=>x.adj!=null).sort((x,y)=>y.adj-x.adj);
+    adj.forEach((x,idx)=>{ give(x.a.g, idx+1); });
+  });
+  return m;
+}
+function teamRanking(){
+  const m=medals();
+  return CFG.grades.slice().sort((a,b)=>{
+    const A=m[a],B=m[b];
+    const ta=A.G+A.S+A.B, tb=B.G+B.S+B.B;
+    if(ta!==tb)return tb-ta;
+    if(A.G!==B.G)return B.G-A.G;
+    if(A.S!==B.S)return B.S-A.S;
+    return B.B-A.B;
+  });
+}
+
+/* ======================= STATE PERSISTENCE ======================= */
+const LSKEY="bshs_athletics_v1";
+function save(){ localStorage.setItem(LSKEY, JSON.stringify(state)); const el=document.getElementById("saveState"); if(el)el.textContent="Saved "+new Date().toLocaleTimeString(); }
+function load(){ try{ const s=localStorage.getItem(LSKEY); if(s) state=JSON.parse(s); }catch(e){} }
+function exportState(){ const b64=btoa(unescape(encodeURIComponent(JSON.stringify(state)))); navigator.clipboard?.writeText(b64); prompt("Copy this state string (or use clipboard):", b64); }
+function importState(){ const s=prompt("Paste state string:"); if(!s)return; try{ state=JSON.parse(decodeURIComponent(escape(atob(s.trim())))); render(); save(); }catch(e){ alert("Invalid state string"); } }
+
+/* ======================= RENDERING ======================= */
+const VIEW={v:"tally", ev:"100M"};
+function evListForView(){ if(VIEW.v==="day1") return [...CFG.trackEvents, ...CFG.throwEvents]; if(VIEW.v==="semis"||VIEW.v==="final") return CFG.trackEvents; return CFG.throwEvents; }
+function setEventBar(){
+  const bar=document.getElementById("eventbar");
+  const list=evListForView();
+  if(!list.some(e=>e.id===VIEW.ev)) VIEW.ev=list[0].id;   // normalize to this view's event list
+  if(!list){bar.innerHTML="";return;}
+  bar.innerHTML=list.map(e=>`<button data-ev="${e.id}" class="${e.id===VIEW.ev?'active':''}">${e.label}</button>`).join("");
+  bar.querySelectorAll("button").forEach(b=>b.onclick=()=>{VIEW.ev=b.dataset.ev; setEventBar(); render();});
+}
+function setNav(){
+  document.querySelectorAll("#nav button").forEach(b=>{
+    b.classList.toggle("active", b.dataset.v===VIEW.v);
+    b.onclick=()=>{VIEW.v=b.dataset.v; setEventBar(); render();};
+  });
+}
+function medalTag(g,med){
+  const cls=med===1?"g1":med===2?"g2":med===3?"g3":"";
+  const sym=med===1?"🥇":med===2?"🥈":med===3?"🥉":"";
+  return `<span class="medal ${cls}">${sym} ${g}</span>`;
+}
+
+function viewSetup(){
+  const allEv=[...CFG.trackEvents.map(e=>({...e,track:true})), ...CFG.throwEvents.map(e=>({...e,track:false}))];
+  let html=`<h2 class="sec">Athlete Setup — edit names (optional). Defaults are grade + slot.</h2><div class="hint">2 track athletes per grade per event · 2 throwers per grade per event · one event per athlete (8 track + 12 throws per grade).</div>`;
+  for(const e of allEv){
+    html+=`<div class="card"><b>${e.label}</b>${e.track?" (track · 12)":" (throws · 12)"}</div><table><tr><th>Slot</th><th>Name</th></tr>`;
+    const arr=e.track? trkAthletes(e.id): thrAthletes(e.id);
+    arr.forEach((a,i)=>{
+      html+=`<tr><td class="ro">${a.g}</td><td><input type="text" data-setup="${e.id}" data-i="${i}" value="${a.name.replace(/"/g,'&quot;')}"></td></tr>`;
+    });
+    html+=`</table>`;
+  }
+  const main=document.getElementById("main"); main.innerHTML=html;
+  main.querySelectorAll("input[data-setup]").forEach(inp=>{
+    inp.onchange=()=>{ const eid=inp.dataset.setup, i=+inp.dataset.i;
+      const arr=(CFG.trackEvents.some(x=>x.id===eid))?trkAthletes(eid):thrAthletes(eid);
+      arr[i].name=inp.value||arr[i].name; save(); };
+  });
+}
+
+function viewDay1(){
+  const eid=VIEW.ev;
+  const tev=CFG.trackEvents.find(e=>e.id===eid);
+  if(tev){
+    const arr=trkAthletes(eid), tmin=fastestTrial(eid);
+    let html=`<h2 class="sec">Day 1 · Time Trials — ${tev.label} (${tev.dist} m)</h2>
+    <div class="hint">Enter each athlete's trial time. Fastest trial = backmarker (0 m). Mark = ${tev.dist}×(1−t_fast/t)×0.85, rounded 0.25 m. Marks auto-compute and apply to every round.</div>`;
+    html+=`<table><tr><th>#</th><th>Grade</th><th>Name</th><th>Trial (s)</th><th>Mark (m)</th><th>Start</th></tr>`;
+    arr.forEach((a,i)=>{
+      const mark= trackMark(tev.dist, tmin, a.trial);
+      const uid=`trial-${eid}-${i}`;
+      const disp=pending[uid]!==undefined?pending[uid]:(a.trial??"");
+      html+=`<tr><td class="ro">${i+1}</td><td>${a.g}</td><td>${a.name}</td>
+        <td>${numCell(uid, disp)}</td>
+        <td class="mark">${mark!=null?fmt(mark)+" m": "—"}</td>
+        <td class="ro">${mark===0?"scratch":(mark!=null?fmt(mark)+" m ahead":"—")}</td></tr>`;
+    });
+    html+=`</table><div class="hint">${tmin!=null?"Fastest trial: "+fmt(tmin)+" s (backmarker, scratch).":"Enter a trial and press ✓ (or Enter) to compute marks."}</div>`;
+    const main=document.getElementById("main"); main.innerHTML=html;
+    wireInputs(main);
+    return;
+  }
+  // ---- throws seeding: 3 throws per thrower, best of 3 seeds the handicap ----
+  const ev=CFG.throwEvents.find(e=>e.id===eid), arr=thrAthletes(eid), best=bestD1(eid);
+  let html=`<h2 class="sec">Day 1 · Throws Seeding — ${ev.label}</h2>
+  <div class="hint">Each thrower takes <b>3 throws</b>; the <b>best of 3</b> seeds the handicap. Bonus = (field best − your best)×0.85, rounded 0.1 m.</div>`;
+  html+=`<table><tr><th>Grade</th><th>Name</th><th>Throw 1</th><th>Throw 2</th><th>Throw 3</th><th>Best (m)</th><th>Bonus (m)</th></tr>`;
+  arr.forEach((a,i)=>{
+    const b=best3(a.d1);
+    const cells=[0,1,2].map(t=>{const uid=`d1t-${eid}-${i}-${t}`; const disp=pending[uid]!==undefined?pending[uid]:(a.d1[t]??""); return `<td>${numCell(uid,disp)}</td>`;}).join("");
+    html+=`<tr><td>${a.g}</td><td>${a.name}</td>${cells}
+      <td class="mark">${b!=null?fmt(b):"—"}</td>
+      <td class="mark">${b!=null&&best!=null?fmt(throwBonus(best,b))+" m":"—"}</td></tr>`;
+  });
+  html+=`</table>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+  wireInputs(main);
+}
+
+function viewSemis(){
+  const eid=VIEW.ev, ev=CFG.trackEvents.find(e=>e.id===eid), arr=trkAthletes(eid);
+  assignHeats(eid);
+  const fl=semiFlags(eid); const med=median(fl.map(f=>f.imp));
+  const q=qualifiers(eid); const qset=new Set(q.qual.map(x=>x.a));
+  let html=`<h2 class="sec">Day 2 · Handicap Semifinals — ${ev.label}</h2>
+  <div class="hint">12 runners → 4 heats of 3 → <b>top 1 per heat + 2 wildcard best times = 6 finalists</b>. Improvement cap trial→semi = 5%; flag if ≥ field median (+${CFG.outlier} pts). Enter semi times; edit Verdict after footage review.</div>`;
+  const heats={}; arr.forEach(a=>{(heats[a.heat||1]=heats[a.heat||1]||[]).push(a);});
+  for(const h of [1,2,3,4]){
+    html+=`<table><tr><th colspan="7">Heat ${h}</th></tr><tr><th>Grade</th><th>Name</th><th>Trial</th><th>Semi (s)</th><th>Improv %</th><th>Flags</th><th>Verdict</th></tr>`;
+    (heats[h]||[]).forEach(a=>{
+      const idx=arr.indexOf(a); const uid=`semi-${eid}-${idx}`;
+      const disp=pending[uid]!==undefined?pending[uid]:(a.semi??"");
+      const f=fl.find(x=>x.a===a); const isQ=qset.has(a);
+      const isW=q.wildcards.some(x=>x.a===a);
+      const badges=[];
+      if(isQ) badges.push(isW?`<span class="tag wc">WILDCARD</span>`:`<span class="tag q">HEAT WINNER</span>`);
+      if(f){
+        if(f.cap) badges.push(`<span class="tag prov">OVER-CAP</span>`);
+        if(f.out) badges.push(`<span class="tag prov">OUTLIER</span>`);
+        if(f.flags===0) badges.push(`<span class="tag clear">CLEAR</span>`);
+      }
+      const verdictSel=`<select data-sver="${a.name}"><option value="">—</option><option ${a.sver==="GENUINE"?"selected":""}>GENUINE</option><option ${a.sver==="SANDBAG"?"selected":""}>SANDBAG</option></select>`;
+      html+=`<tr><td>${a.g}</td><td>${a.name}</td><td class="ro">${a.trial!=null?fmt(a.trial):"—"}</td>
+        <td>${numCell(uid, disp)}</td>
+        <td>${f&&f.imp!=null?fmt(f.imp)+"%":"—"}</td>
+        <td class="flags">${badges.join(" ")}</td><td>${verdictSel}</td></tr>`;
+    });
+    html+=`</table>`;
+  }
+  html+=`<div class="hint">Field median improvement: ${med!=null?fmt(med)+"%":"—"}. ${q.qual.length?`<b>${q.qual.length} qualifiers → Day 3 Final.</b>`:"Enter semis to compute qualifiers."}</div>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+  wireInputs(main);
+  main.querySelectorAll("select[data-sver]").forEach(sel=>{
+    sel.onchange=()=>{ const a=arr.find(x=>x.name===sel.dataset.sver); a.sver=sel.value; save(); render(); };
+  });
+}
+
+function viewFinal(){
+  const eid=VIEW.ev, ev=CFG.trackEvents.find(e=>e.id===eid), arr=trkAthletes(eid);
+  const q=qualifiers(eid);
+  if(!q.qual.length){ const main=document.getElementById("main"); main.innerHTML=`<h2 class="sec">Day 3 · Grand Final — ${ev.label}</h2><div class="hint">Complete Day 2 semis first to determine the 6 finalists.</div>`; return; }
+  // assign batches by alternating qualification order
+  q.qual.forEach((f,i)=>{ if(f.a.batch==null) f.a.batch=(i%2)+1; });
+  const fl=finalFlags(eid); const med=median(fl.map(f=>f.imp));
+  const ranked=finalRank(eid); const place=new Map(ranked.map((f,i)=>[f.a,i+1]));
+  let html=`<h2 class="sec">Day 3 · Grand Final — ${ev.label} (6 finalists, two batches of 3)</h2>
+  <div class="hint">Oval has 3 lanes → the 6 run in <b>two batches of 3</b>; overall places by <b>gun-to-line finish time across both batches</b>. Medal = top 3 combined times. Cap semi→final = 8%. Dead heat = photo finish, no ties (override Place if needed).</div>`;
+  for(const b of [1,2]){
+    const list=ranked.filter(f=>f.a.batch===b);
+    html+=`<table><tr><th colspan="8">Batch ${b}</th></tr><tr><th>Grade</th><th>Name</th><th>Semi</th><th>Final (s)</th><th>Improv %</th><th>Flags</th><th>Verdict</th><th>Overall</th></tr>`;
+    list.forEach(f=>{
+      const a=f.a; const idx=trkAthletes(eid).indexOf(a); const uid=`ftime-${eid}-${idx}`;
+      const disp=pending[uid]!==undefined?pending[uid]:(a.ftime??"");
+      const badges=[];
+      if(f.cap)badges.push(`<span class="tag prov">OVER-CAP</span>`);
+      if(f.out)badges.push(`<span class="tag prov">OUTLIER</span>`);
+      if(f.flags===0)badges.push(`<span class="tag clear">CLEAR</span>`);
+      const p=place.get(a);
+      const medal=p<=3?medalTag(a.g,p):`#${p}`;
+      const verdictSel=`<select data-fver="${a.name}"><option value="">—</option><option ${a.fver==="GENUINE"?"selected":""}>GENUINE</option><option ${a.fver==="SANDBAG"?"selected":""}>SANDBAG</option></select>`;
+      html+=`<tr><td>${a.g}</td><td>${a.name}</td><td class="ro">${f.osemi!=null?fmt(f.osemi):"—"}</td>
+        <td>${numCell(uid, disp)}</td>
+        <td>${f.imp!=null?fmt(f.imp)+"%":"—"}</td><td class="flags">${badges.join(" ")}</td>
+        <td>${verdictSel}</td><td>${p!=null&&a.ftime!=null?medal:""}</td></tr>`;
+    });
+    html+=`</table>`;
+  }
+  html+=`<div class="hint">Field median improvement: ${med!=null?fmt(med)+"%":"—"}.</div>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+  wireInputs(main);
+  main.querySelectorAll("select[data-fver]").forEach(sel=>{
+    sel.onchange=()=>{ const a=arr.find(x=>x.name===sel.dataset.fver); a.fver=sel.value; save(); render(); };
+  });
+}
+
+function viewThrows(){
+  const eid=VIEW.ev, ev=CFG.throwEvents.find(e=>e.id===eid), arr=thrAthletes(eid), best=bestD1(eid);
+  const adj=throwsAdjusted(eid);
+  const ranked=adj.filter(x=>x.adj!=null).sort((x,y)=>y.adj-x.adj); const place=new Map(ranked.map((x,i)=>[x.a,i+1]));
+  let html=`<h2 class="sec">Throws Competition — ${ev.label}</h2>
+  <div class="hint">Each thrower takes <b>3 throws</b>; the <b>best of 3</b> counts. <b>Adjusted = best + bonus</b>. Bonus = (field best − Day-1 best)×0.85 rounded 0.1 m. Improvement cap = 15% of Day-1 best. Day-1 seeding is entered under <b>Day 1</b>. Dead heat by measure, no ties.</div>`;
+  html+=`<table><tr><th>Grade</th><th>Name</th><th>Day-1 best</th><th>Throw 1</th><th>Throw 2</th><th>Throw 3</th><th>Best</th><th>Bonus</th><th>Improv %</th><th>Flag</th><th>Verdict</th><th>Adjusted</th><th>Place</th></tr>`;
+  adj.forEach(x=>{
+    const a=x.a; const idx=arr.indexOf(a);
+    const badges=[]; const imp=x.imp;
+    if(x.cap)badges.push(`<span class="tag prov">OVER-CAP</span>`); else if(imp!=null)badges.push(`<span class="tag clear">CLEAR</span>`);
+    const p=place.get(a); const medal=p!=null&&p<=3?medalTag(a.g,p):(p?`#${p}`:"");
+    const verdictSel=`<select data-tver="${a.name}"><option value="">—</option><option ${a.ver==="GENUINE"?"selected":""}>GENUINE</option><option ${a.ver==="SANDBAG"?"selected":""}>SANDBAG</option></select>`;
+    const cells=[0,1,2].map(t=>{const uid=`thr-${eid}-${idx}-${t}`; const disp=pending[uid]!==undefined?pending[uid]:(a.actual[t]??""); return `<td>${numCell(uid,disp)}</td>`;}).join("");
+    html+=`<tr><td>${a.g}</td><td>${a.name}</td><td class="ro">${x.d1b!=null?fmt(x.d1b):"—"}</td>${cells}
+      <td class="mark">${x.actb!=null?fmt(x.actb):"—"}</td>
+      <td class="mark">${x.bonus!=null?fmt(x.bonus):"—"}</td>
+      <td>${imp!=null?fmt(imp)+"%":"—"}</td><td class="flags">${badges.join(" ")}</td>
+      <td>${verdictSel}</td><td class="mark">${x.adj!=null?fmt(x.adj):"—"}</td><td>${medal}</td></tr>`;
+  });
+  html+=`</table>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+  wireInputs(main);
+  main.querySelectorAll("select[data-tver]").forEach(sel=>{
+    sel.onchange=()=>{ const a=arr.find(x=>x.name===sel.dataset.tver); a.ver=sel.value; save(); render(); };
+  });
+}
+
+function viewTally(){
+  const m=medals(); const rank=teamRanking();
+  let html=`<h2 class="sec">Medal Tally — medal tally only (gold/silver/bronze, no participation points)</h2>`;
+  html+=`<table><tr><th>Rank</th><th>Grade</th><th>🥇 Gold</th><th>🥈 Silver</th><th>🥉 Bronze</th><th>Total</th></tr>`;
+  rank.forEach((g,i)=>{ const x=m[g]; const tot=x.G+x.S+x.B;
+    html+=`<tr><td>${i+1}</td><td><b>${g}</b></td><td class="g1">${x.G}</td><td class="g2">${x.S}</td><td class="g3">${x.B}</td><td><b>${tot}</b></td></tr>`; });
+  html+=`</table><div class="card">Champion: <b>${rank[0]}</b> (${m[rank[0]].G+m[rank[0]].S+m[rank[0]].B} medals).</div>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+}
+
+function viewDisplay(){
+  const m=medals(); const rank=teamRanking();
+  let html=`<div id="display"><div class="medalgrid">`;
+  rank.forEach((g,i)=>{ const x=m[g]; const tot=x.G+x.S+x.B;
+    const star=i===0?"⭐ ":"";
+    html+=`<div class="${i===0?"rank1":""}" style="margin:6px">${star}${g}  🥇${x.G}  🥈${x.S}  🥉${x.B}  <span style="color:var(--muted)">· ${tot} medals</span></div>`;
+  });
+  html+=`</div></div>`;
+  const main=document.getElementById("main"); main.innerHTML=html;
+}
+
+function render(){
+  const list=evListForView();
+  if(!list.some(e=>e.id===VIEW.ev)) VIEW.ev=list[0].id;   // normalize event to current view
+  save();
+  if(VIEW.v==="setup")viewSetup(); else if(VIEW.v==="day1")viewDay1(); else if(VIEW.v==="semis")viewSemis();
+  else if(VIEW.v==="final")viewFinal(); else if(VIEW.v==="throws")viewThrows();
+  else if(VIEW.v==="tally")viewTally(); else if(VIEW.v==="display")viewDisplay();
+}
+
+/* ======================= DEMO (known-good scenario) ======================= */
+function demo(){
+  // ---- track: base trials per event (athlete #1) + #2 slower by 0.4s ----
+  const baseTrial={"100M":[16.4,15.6,14.6,14.1,13.6,13.0],"100F":[17.8,17.0,16.0,15.5,15.0,14.5],
+    "200M":[35.0,33.5,31.0,29.5,28.6,27.5],"200F":[36.5,35.0,32.5,31.0,30.0,29.0]};
+  CFG.trackEvents.forEach(ev=>{
+    const arr=trkAthletes(ev.id); state.track[ev.id]=arr.map((a,i)=>{
+      const gi=Math.floor(i/2); const n=(i%2)+1;
+      const base=baseTrial[ev.id][gi];
+      const trial=n===1?base:base+0.4;
+      const semi=trial-(0.20+(gi%3)*0.02); // honest ~1.2-1.5% improvement
+      return {g:a.g, name:`${a.g} #${n}`, trial, heat:(i%4)+1, semi, sver:"", batch:null, ftime:null, fver:""};
+    });
+  });
+  // final times for the qualifiers (set a realistic run ~2% faster than semi)
+  CFG.trackEvents.forEach(ev=>{
+    const arr=trkAthletes(ev.id); assignHeats(ev.id);
+    const q=qualifiers(ev.id).qual;
+    q.forEach((f,i)=>{
+      const a=f.a; a.batch=(i%2)+1;
+      a.ftime=a.semi*(0.975 + (i%3)*0.004);
+      a.fver="";
+    });
+  });
+  // ---- throws (from verified Excel sample: 1 per grade) ----
+  const d1={"ShotM":[4.0,4.5,5.0,5.5,6.0,7.0],"ShotF":[2.5,3.0,3.5,4.0,4.5,5.0],
+    "DiscusM":[8,10,12,14,16,19],"DiscusF":[6,7,9,10,12,14],"JavM":[10,12,15,18,21,26],"JavF":[7,9,11,13,15,18]};
+  const act={"ShotM":[4.55,4.5,5.0,5.5,6.0,7.1],"ShotF":[2.55,3.06,3.57,4.08,4.59,5.1],
+    "DiscusM":[8.16,10.2,12.24,14.28,16.32,19.38],"DiscusF":[6.12,7.14,9.18,10.2,12.24,14.28],
+    "JavM":[10.2,12.24,15.3,18.36,21.42,26.52],"JavF":[7.14,9.18,11.22,13.26,15.3,18.36]};
+  CFG.throwEvents.forEach(ev=>{
+    state.throws[ev.id]=thrAthletes(ev.id).map((a,i)=>{
+      const gi=Math.floor(i/2), n=(i%2)+1;
+      const base=d1[ev.id][gi], baseAct=act[ev.id][gi];
+      const dv= n===1? base : mround(base-0.4,0.1);
+      const av= n===1? baseAct : mround(baseAct-0.45,0.1);
+      return {g:a.g,name:`${a.g} #${n}`,
+        d1:[mround(dv-0.4,0.1), mround(dv-0.2,0.1), dv],
+        actual:[mround(av-0.5,0.1), mround(av-0.25,0.1), av],
+        ver:""};
+    });
+  });
+  save(); render();
+}
+
+/* ======================= SELF-TEST ======================= */
+function selfTest(){
+  const R=[];
+  const chk=(name,got,exp)=>{ R.push({name, pass:Math.abs(got-exp)<1e-6||got===exp, got, exp}); };
+  // mround
+  chk("mround(2.55,0.1)=2.6", mround(2.55,0.1), 2.6);
+  chk("mround(17.62,0.25)=17.5", mround(17.62,0.25), 17.5);
+  chk("mround(14.167,0.25)=14.25", mround(14.166666,0.25), 14.25);
+  // marks vs verified Excel (100M, k=0.85, fastest 13.0)
+  chk("mark G7 16.4=17.5", trackMark(100,13.0,16.4), 17.5);
+  chk("mark G8 15.6=14.25", trackMark(100,13.0,15.6), 14.25);
+  chk("mark G9 14.6=9.25", trackMark(100,13.0,14.6), 9.25);
+  chk("mark G10 14.1=6.75", trackMark(100,13.0,14.1), 6.75);
+  chk("mark G11 13.6=3.75", trackMark(100,13.0,13.6), 3.75);
+  chk("mark G12 13.0=0", trackMark(100,13.0,13.0), 0);
+  chk("mark 200M G11=6.5", trackMark(200,27.5,28.6), 6.5);
+  // throws bonus (Shot M best 7.0, m=0.85)
+  chk("bonus G7 shot=2.6", throwBonus(7.0,4.0), 2.6);
+  chk("bonus G8 shot=2.1", throwBonus(7.0,4.5), 2.1);
+  chk("best3 [4.4,4.6,4.8]=4.8", best3([4.4,4.6,4.8]), 4.8);
+  chk("best3 [4.4,null,4.6]=4.6", best3([4.4,null,4.6]), 4.6);
+  // sandbag flag
+  chk("improve 16.4->15.0=8.54%", improvPct(16.4,15.0), 8.536585365853659);
+  const pass=R.filter(r=>r.pass).length;
+  const res=document.getElementById("main");
+  let h=`<h2 class="sec">Self-Test — ${pass}/${R.length} passed</h2><table><tr><th>Check</th><th>Pass</th><th>Got</th><th>Expected</th></tr>`;
+  R.forEach(r=>h+=`<tr><td>${r.name}</td><td class="${r.pass?'good':'bad'}">${r.pass?'PASS':'FAIL'}</td><td>${r.got}</td><td>${r.exp}</td></tr>`);
+  h+=`</table>`;
+  res.innerHTML=h;
+  return R;
+}
+
+/* ======================= BOOT ======================= */
+window.addEventListener("load", ()=>{
+  load();
+  document.getElementById("btnDemo").onclick=()=>{ demo(); VIEW.v="tally"; setNav(); setEventBar(); render(); };
+  document.getElementById("btnTest").onclick=()=>selfTest();
+  document.getElementById("btnExport").onclick=exportState;
+  document.getElementById("btnImport").onclick=importState;
+  document.getElementById("btnReset").onclick=()=>{ if(confirm("Reset all data?")){ state={track:{},throws:{}}; localStorage.removeItem(LSKEY); render(); } };
+  setNav(); setEventBar(); render();
+});
+window.__tracker={CFG, state, VIEW, mround, trackMark, throwBonus, best3, improvPct, median, qualifiers, semiFlags, finalFlags, finalRank, throwsAdjusted, medals, teamRanking, demo, selfTest, commit,
+  renderView:(v)=>{ VIEW.v=v; render(); return document.getElementById("main").innerHTML; }};
+</script>
+</body>
+</html>
