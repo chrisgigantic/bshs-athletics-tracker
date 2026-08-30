@@ -376,7 +376,7 @@ function fbUI(){
     document.title=(document.title||"")+" · OPERATOR";
   } else {
     const st=document.createElement("style");
-    st.textContent="html.fb-viewer input,html.fb-viewer select{pointer-events:none;background:#f7f7f7;} html.fb-viewer #btnDemo,html.fb-viewer #btnReset,html.fb-viewer #btnImport,html.fb-viewer #btnExport,html.fb-viewer #btnTest{display:none;}";
+    st.textContent="html.fb-viewer input,html.fb-viewer select{pointer-events:none;opacity:.9;} html.fb-viewer button.chk{display:none;} html.fb-viewer #btnDemo,html.fb-viewer #btnReset,html.fb-viewer #btnImport,html.fb-viewer #btnExport,html.fb-viewer #btnTest{display:none;}";
     document.head.appendChild(st);
     document.documentElement.classList.add("fb-viewer");
   }
@@ -393,6 +393,8 @@ const VIEW={v:"tally", ev:"100M"};
 function evListForView(){ if(VIEW.v==="day1") return [...CFG.trackEvents, ...CFG.throwEvents]; if(VIEW.v==="semis"||VIEW.v==="final") return CFG.trackEvents; return CFG.throwEvents; }
 function setEventBar(){
   const bar=document.getElementById("eventbar");
+  if(VIEW.v==="setup"||VIEW.v==="tally"||VIEW.v==="display"){ bar.style.display="none"; return; }
+  bar.style.display="";
   const list=evListForView();
   if(!list.some(e=>e.id===VIEW.ev)) VIEW.ev=list[0].id;   // normalize to this view's event list
   if(!list){bar.innerHTML="";return;}
