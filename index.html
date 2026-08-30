@@ -239,6 +239,16 @@ function throwsAdjusted(eid){
   });
 }
 
+function throwsFinalistIds(eid){
+  const best=bestD1(eid);
+  return thrAthletes(eid)
+    .map(a=>({a, d1b:best3(a.d1), seedAdj: best3(a.d1)!=null ? best3(a.d1)+throwBonus(best,best3(a.d1)) : null}))
+    .filter(x=>x.seedAdj!=null)
+    .sort((x,y)=> y.seedAdj-x.seedAdj || y.d1b-x.d1b || (x.a.name<y.a.name?-1:1))
+    .slice(0,6)
+    .map(x=>x.a.name);
+}
+
 /* ======================= MEDAL TALLY ======================= */
 function medals(){
   const m={}; CFG.grades.forEach(g=>m[g]={G:0,S:0,B:0});
@@ -248,9 +258,10 @@ function medals(){
     const r=finalRank(ev.id);
     r.forEach((f,idx)=>{ give(f.a.g, idx+1); });
   });
-  // throws
+  // throws — medals from the 6-person final only; adjusted tie → higher raw throw wins
   CFG.throwEvents.forEach(ev=>{
-    const adj=throwsAdjusted(ev.id).filter(x=>x.adj!=null).sort((x,y)=>y.adj-x.adj);
+    const finals=new Set(throwsFinalistIds(ev.id));
+    const adj=throwsAdjusted(ev.id).filter(x=>finals.has(x.a.name)&&x.adj!=null).sort((x,y)=>y.adj-x.adj || (y.actb-x.actb));
     adj.forEach((x,idx)=>{ give(x.a.g, idx+1); });
   });
   return m;
@@ -550,24 +561,32 @@ function viewFinal(){
 function viewThrows(){
   const eid=VIEW.ev, ev=CFG.throwEvents.find(e=>e.id===eid), arr=thrAthletes(eid), best=bestD1(eid);
   const adj=throwsAdjusted(eid);
-  const ranked=adj.filter(x=>x.adj!=null).sort((x,y)=>y.adj-x.adj); const place=new Map(ranked.map((x,i)=>[x.a,i+1]));
+  const finals=new Set(throwsFinalistIds(eid));
+  const ranked=adj.filter(x=>finals.has(x.a.name)&&x.adj!=null).sort((x,y)=>y.adj-x.adj || (y.actb-x.actb));
+  const place=new Map(ranked.map((x,i)=>[x.a,i+1]));
   let html=`<h2 class="sec">Throws Competition — ${ev.label}</h2>
-  <div class="hint">Each thrower takes <b>3 throws</b>; the <b>best of 3</b> counts. <b>Adjusted = best + bonus</b>. Bonus = (field best − Day-1 best)×0.85 rounded 0.1 m. Improvement cap = 15% of Day-1 best. Day-1 seeding is entered under <b>Day 1</b>. Dead heat by measure, no ties.</div>`;
-  html+=`<table><tr><th>Grade</th><th>Name</th><th>Day-1 best</th><th>Throw 1</th><th>Throw 2</th><th>Throw 3</th><th>Best</th><th>Bonus</th><th>Improv %</th><th>Flag</th><th>Verdict</th><th>Adjusted</th><th>Place</th></tr>`;
+  <div class="hint">Day-1 seeding (3 throws, best of 3) is entered under <b>Day 1</b>. Top 6 by <b>adjusted seed</b> qualify → <b>6-person final</b>. Adjusted = best + bonus (bonus locked from Day-1). Improvement cap = 15% of Day-1 best. Tie in adjusted → <b>higher raw throw wins</b>.</div>`;
+  html+=`<table><tr><th>Grade</th><th>Name</th><th>Day-1 best</th><th>Seed adj</th><th>Status</th><th>Throw 1</th><th>Throw 2</th><th>Throw 3</th><th>Best</th><th>Bonus</th><th>Improv %</th><th>Flag</th><th>Verdict</th><th>Adjusted</th><th>Place</th></tr>`;
   adj.forEach(x=>{
     const a=x.a; const idx=arr.indexOf(a);
+    const isFin=finals.has(a.name);
     const badges=[]; const imp=x.imp;
     if(x.cap)badges.push(`<span class="tag prov">OVER-CAP</span>`); else if(imp!=null)badges.push(`<span class="tag clear">CLEAR</span>`);
-    const p=place.get(a); const medal=p!=null&&p<=3?medalTag(a.g,p):(p?`#${p}`:"");
+    const p=isFin?place.get(a):null; const medal=p!=null&&p<=3?medalTag(a.g,p):(p?`#${p}`:"");
+    const status = x.d1b==null ? "—" : (isFin ? `<span class="tag clear">FINAL</span>` : `<span class="tag prov">DNQ</span>`);
+    const seedAdj = x.d1b!=null&&x.bonus!=null ? fmt(x.d1b+x.bonus) : "—";
+    const actCells = isFin
+      ? [0,1,2].map(t=>{const uid=`thr-${eid}-${idx}-${t}`; const disp=pending[uid]!==undefined?pending[uid]:(a.actual[t]??""); return `<td>${numCell(uid,disp)}</td>`;}).join("")
+      : `<td colspan="3" class="ro">—</td>`;
     const verdictSel=`<select data-tver="${a.name}"><option value="">—</option><option ${a.ver==="GENUINE"?"selected":""}>GENUINE</option><option ${a.ver==="SANDBAG"?"selected":""}>SANDBAG</option></select>`;
-    const cells=[0,1,2].map(t=>{const uid=`thr-${eid}-${idx}-${t}`; const disp=pending[uid]!==undefined?pending[uid]:(a.actual[t]??""); return `<td>${numCell(uid,disp)}</td>`;}).join("");
-    html+=`<tr><td>${a.g}</td><td>${a.name}</td><td class="ro">${x.d1b!=null?fmt(x.d1b):"—"}</td>${cells}
+    html+=`<tr><td>${a.g}</td><td>${a.name}</td><td class="ro">${x.d1b!=null?fmt(x.d1b):"—"}</td><td class="ro">${seedAdj}</td><td>${status}</td>${actCells}
       <td class="mark">${x.actb!=null?fmt(x.actb):"—"}</td>
-      <td class="mark">${x.bonus!=null?fmt(x.bonus):"—"}</td>
+      <td class="ro">${x.bonus!=null?fmt(x.bonus):"—"}</td>
       <td>${imp!=null?fmt(imp)+"%":"—"}</td><td class="flags">${badges.join(" ")}</td>
       <td>${verdictSel}</td><td class="mark">${x.adj!=null?fmt(x.adj):"—"}</td><td>${medal}</td></tr>`;
   });
   html+=`</table>`;
+  html+=`<div class="hint">${finals.size?`<b>${finals.size} finalists</b> (top 6 by adjusted seed). Medals = top 3 adjusted in the final.`:"Enter Day-1 seeding under <b>Day 1</b> first (3 throws, best of 3) to compute the 6 finalists."}</div>`;
   const main=document.getElementById("main"); main.innerHTML=html;
   wireInputs(main);
   main.querySelectorAll("select[data-tver]").forEach(sel=>{
@@ -696,7 +715,7 @@ window.addEventListener("load", ()=>{
   setNav(); setEventBar(); render();
   fbStart();
 });
-window.__tracker={CFG, state, VIEW, mround, trackMark, throwBonus, best3, improvPct, median, qualifiers, semiFlags, finalFlags, finalRank, throwsAdjusted, medals, teamRanking, demo, selfTest, commit,
+window.__tracker={CFG, state, VIEW, mround, trackMark, throwBonus, best3, improvPct, median, qualifiers, semiFlags, finalFlags, finalRank, throwsAdjusted, throwsFinalistIds, trkAthletes, thrAthletes, medals, teamRanking, demo, selfTest, commit,
   renderView:(v)=>{ VIEW.v=v; render(); return document.getElementById("main").innerHTML; }};
 </script>
 </body>
