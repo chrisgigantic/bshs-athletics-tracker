@@ -579,7 +579,10 @@ function viewTally(){
   html+=`<table><tr><th>Rank</th><th>Grade</th><th>🥇 Gold</th><th>🥈 Silver</th><th>🥉 Bronze</th><th>Total</th></tr>`;
   rank.forEach((g,i)=>{ const x=m[g]; const tot=x.G+x.S+x.B;
     html+=`<tr><td>${i+1}</td><td><b>${g}</b></td><td class="g1">${x.G}</td><td class="g2">${x.S}</td><td class="g3">${x.B}</td><td><b>${tot}</b></td></tr>`; });
-  html+=`</table><div class="card">Champion: <b>${rank[0]}</b> (${m[rank[0]].G+m[rank[0]].S+m[rank[0]].B} medals).</div>`;
+  const totAll = rank.reduce((s,g)=>s+(m[g].G||0)+(m[g].S||0)+(m[g].B||0),0);
+  html+=`</table>` + (totAll===0
+    ? `<div class="hint">No results yet — results will appear here live as the operator enters them.</div>`
+    : `<div class="card">Champion: <b>${rank[0]}</b> (${m[rank[0]].G+m[rank[0]].S+m[rank[0]].B} medals).</div>`);
   const main=document.getElementById("main"); main.innerHTML=html;
 }
 
